@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #6C4CF1;
+  --color-primary-light: #F2EEFF;
+  --color-primary-bg: #F7F4FF;
+  --color-primary-dark: #5534DB;
+
+  --font-sans: 'Inter', sans-serif;
+
+  --radius-card: 20px;
+
+  --shadow-subtle: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 300ms;
+  }
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(108, 76, 241, 0.2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 76, 241, 0.4);
+}
+
+/* Background characters pattern styling */
+.bg-characters {
+  background-image: url('./assets/bg-pattern.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Base styles for rounded cards */
+.rounded-card {
+  border-radius: 20px;
+}
+
+/* Premium layout custom scrollbar styling for pages */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E4E2F0;
+  border-radius: 9999px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2E303D;
+}
