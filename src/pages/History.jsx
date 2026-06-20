@@ -331,7 +331,24 @@ const History = () => {
 
                     {/* Output */}
                     <td className="py-4.5 px-6 text-gray-600 dark:text-gray-300 max-w-[300px] truncate text-left">
-                      {row.output}
+                      {(() => {
+                        if (row.module === 'Entity Recognition') {
+                          try {
+                            const parsed = JSON.parse(row.output);
+                            const parts = [];
+                            Object.entries(parsed).forEach(([key, val]) => {
+                              if (Array.isArray(val) && val.length > 0) {
+                                const capKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                parts.push(`${capKey}: ${val.join(', ')}`);
+                              }
+                            });
+                            return parts.length > 0 ? parts.join(' | ') : 'No entities found';
+                          } catch {
+                            return row.output;
+                          }
+                        }
+                        return row.output;
+                      })()}
                     </td>
 
                     {/* Date */}

@@ -183,88 +183,65 @@ router.post('/analyze-entities', auth, async (req, res) => {
     return res.status(400).json({ message: 'Text is required.' });
   }
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    return res.status(500).json({
+      message: 'GEMINI_API_KEY is not configured on the backend server. Please add your Gemini API Key to server/.env to analyze entities.'
+    });
+  }
+
   try {
-    let entities = { persons: [], organizations: [], locations: [] };
-
-    if (aiActive && genAI) {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const prompt = `Extract the main entities (PERSON, ORGANIZATION, LOCATION) from the following text. Return the result in a clean JSON format matching this schema:\n{\n  "persons": ["Name1"],\n  "organizations": ["Org1"],\n  "locations": ["Loc1"]\n}\nDo not return any markdown code block formatting (like \`\`\`json), just the raw JSON object. If there are no entities for a category, return an empty array.\n\nText: ${text}`;
-      
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let cleanText = response.text().trim();
-      
-      if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```json\s*/, '').replace(/```$/, '').trim();
-      }
-      
-      entities = JSON.parse(cleanText);
-    } else {
-      // Local Heuristic Fallback
-      const normalizedText = text.trim().toLowerCase();
-
-      if (normalizedText.includes('john works at google in chennai')) {
-        entities = {
-          persons: ['John'],
-          organizations: ['Google'],
-          locations: ['Chennai']
-        };
-      } else {
-        // Extract capitalized words dynamically as entities
-        const words = text.split(/[^a-zA-Z]/);
-        const orgList = ['google', 'microsoft', 'apple', 'amazon', 'ibm', 'meta', 'netflix', 'openai', 'tesla', 'spacex', 'tcs', 'infosys'];
-        const locList = ['chennai', 'mumbai', 'delhi', 'bangalore', 'london', 'paris', 'new york', 'tokyo', 'california', 'india', 'usa', 'tamil nadu'];
-        const personList = ['john', 'jane', 'robert', 'mary', 'alice', 'bob', 'charlie', 'david', 'sarah', 'michael'];
-
-        const uniqueMatches = { persons: new Set(), organizations: new Set(), locations: new Set() };
-
-        words.forEach(word => {
-          if (word.length > 2 && word[0] === word[0].toUpperCase()) {
-            const lWord = word.toLowerCase();
-            if (orgList.includes(lWord)) {
-              uniqueMatches.organizations.add(word);
-            } else if (locList.includes(lWord)) {
-              uniqueMatches.locations.add(word);
-            } else if (personList.includes(lWord)) {
-              uniqueMatches.persons.add(word);
-            } else if (!/^[A-Z][a-z]+$/.test(word)) {
-              // skip non-proper nouns or general words
-            } else {
-              // Fallback
-              uniqueMatches.persons.add(word);
-            }
-          }
-        });
-
-        // Also do a simple substring check for multi-word locations or orgs
-        locList.forEach(loc => {
-          if (normalizedText.includes(loc)) {
-            // Find casing from original text
-            const index = normalizedText.indexOf(loc);
-            const originalCasing = text.substring(index, index + loc.length);
-            uniqueMatches.locations.add(originalCasing);
-          }
-        });
-
-        entities = {
-          persons: Array.from(uniqueMatches.persons),
-          organizations: Array.from(uniqueMatches.organizations),
-          locations: Array.from(uniqueMatches.locations)
-        };
-      }
+    if (!genAI) {
+      genAI = new GoogleGenerativeAI(apiKey);
     }
 
-    // Save to database history
-    const outputString = `Person: ${entities.persons.join(', ') || 'None'} | Organization: ${entities.organizations.join(', ') || 'None'} | Location: ${entities.locations.join(', ') || 'None'}`;
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: `You are an expert Named Entity Recognition system.
+
+Extract entities from the user's text and return ONLY valid JSON.
+
+Schema:
+
+{
+  "persons": [],
+  "organizations": [],
+  "locations": [],
+  "professions": [],
+  "emails": [],
+  "phones": [],
+  "dates": [],
+  "products": [],
+  "events": [],
+  "skills": [],
+  "urls": []
+}
+
+Do not explain anything.
+Do not add markdown.
+Return only JSON.`
+    });
+
+    const result = await model.generateContent(text);
+    const response = await result.response;
+    let cleanText = response.text().trim();
+
+    if (cleanText.includes('```')) {
+      cleanText = cleanText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    }
+
+    const entities = JSON.parse(cleanText);
+
+    // Save to database history (save JSON representation)
     await db.run(
       'INSERT INTO history (user_id, module, input, output) VALUES (?, ?, ?, ?)',
-      [req.user.id, 'Entity Recognition', text, outputString]
+      [req.user.id, 'Entity Recognition', text, JSON.stringify(entities)]
     );
 
     res.json({ entities });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error analyzing entities.' });
+    console.error('Entity Recognition error:', err);
+    res.status(500).json({ message: 'Error analyzing entities: ' + err.message });
   }
 });
 
