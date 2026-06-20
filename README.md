@@ -10,7 +10,7 @@ EasyWithAI is a modern, premium AI-powered SaaS dashboard built for text process
 
 ## 🌟 Key Features
 
-*   💬 **ChatGPT-style AI Email Generator**: An interactive natural-language email writer powered by the Google Gemini API (`gemini-2.5-flash`). Input instructions directly (e.g., requests, applications, complaints) to get professional, human-like responses with adjustable settings (`temperature: 1.1`, `topP: 0.95`, `topK: 40`). Supports instant copy, text file downloading, and version regeneration.
+*   💬 **AI Email Generator**: An interactive natural-language email writer powered by the Google Gemini API (`gemini-2.5-flash`). Input instructions directly (e.g., requests, applications, complaints) to get professional, human-like responses with adjustable settings (`temperature: 1.1`, `topP: 0.95`, `topK: 40`). Supports instant copy, text file downloading, and version regeneration.
 *   🌐 **Multi-Language Translator**: Translate text between 30+ languages dynamically using the Google Translate API. Includes a convenient clear-input button to reset source and translated text instantly.
 *   🔍 **AI Named Entity Recognition (NER)**: Automatically analyze text to detect and extract key entities, categorizing them into *Persons*, *Organizations*, and *Locations* using Gemini LLM processing (with local heuristic fallbacks).
 *   🔊 **Text-to-Speech (TTS)**: Convert generated drafts or translated texts into high-quality downloadable MP3 speech files powered by the Google TTS API.
