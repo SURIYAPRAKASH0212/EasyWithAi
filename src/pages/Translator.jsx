@@ -339,7 +339,7 @@ const Translator = () => {
           {/* Swap Button */}
           <button
             onClick={handleSwap}
-            className="p-3 bg-gray-50 dark:bg-gray-800/50 hover:bg-primary/10 hover:text-primary dark:hover:text-[#A793FF] rounded-xl text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-800 transition-all duration-200 mt-6"
+            className="p-3 bg-gray-50 dark:bg-gray-800/50 hover:bg-primary/10 hover:text-primary dark:hover:text-[#A793FF] rounded-xl text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-800 transition-all duration-200 mt-0 sm:mt-6 cursor-pointer"
             title="Swap Languages"
           >
             <ArrowRightLeft size={16} />
