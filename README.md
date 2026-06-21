@@ -3,7 +3,7 @@
 EasyWithAI is a modern, premium AI-powered SaaS dashboard built for text processing tasks. It integrates advanced Artificial Intelligence models and utility services to help users write emails, translate languages, extract entities, and convert text to speech. 
 
 # Live Demo
-https://easywithai-btmx.onrender.com/home
+https://easywithai-btmx.onrender.com
 
 
 
