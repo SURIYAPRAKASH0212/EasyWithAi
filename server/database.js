@@ -1,10 +1,24 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 const dbPath = process.env.DATABASE_PATH || path.resolve(__dirname, 'database.sqlite');
+
+// Ensure parent directory exists for the SQLite database file
+try {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created database directory: ${dir}`);
+  }
+} catch (fsErr) {
+  console.error('Error creating database directory:', fsErr.message);
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Error connecting to database:', err.message);
+    console.error('FATAL: Error connecting to SQLite database:', err.message);
+    process.exit(1); // Exit to prevent queries from hanging in the sqlite3 queue
   } else {
     console.log('Connected to the SQLite database.');
     initializeDatabase();
