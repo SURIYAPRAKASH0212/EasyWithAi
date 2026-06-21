@@ -2,17 +2,29 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = process.env.DATABASE_PATH || path.resolve(__dirname, 'database.sqlite');
+const defaultDbPath = path.resolve(__dirname, 'database.sqlite');
+let dbPath = process.env.DATABASE_PATH || defaultDbPath;
 
-// Ensure parent directory exists for the SQLite database file
+// Test if the target database directory is writable
+let isWritable = false;
 try {
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     console.log(`Created database directory: ${dir}`);
   }
-} catch (fsErr) {
-  console.error('Error creating database directory:', fsErr.message);
+  // Verify write access by writing a temporary test file
+  const testFilePath = path.join(dir, '.db_write_test');
+  fs.writeFileSync(testFilePath, 'test');
+  fs.unlinkSync(testFilePath);
+  isWritable = true;
+} catch (writeErr) {
+  console.error(`WARNING: Database path "${dbPath}" is not writable:`, writeErr.message);
+}
+
+if (!isWritable) {
+  console.warn(`Falling back to default database path: ${defaultDbPath}`);
+  dbPath = defaultDbPath;
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -20,7 +32,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('FATAL: Error connecting to SQLite database:', err.message);
     process.exit(1); // Exit to prevent queries from hanging in the sqlite3 queue
   } else {
-    console.log('Connected to the SQLite database.');
+    console.log(`Connected to the SQLite database at: ${dbPath}`);
     initializeDatabase();
   }
 });
