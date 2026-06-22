@@ -16,6 +16,8 @@ dist-ssr
 server/.env
 node_modules/
 dist/
+server/node_modules
+server/database.sqlite
 
 # Editor directories and files
 .vscode/*
