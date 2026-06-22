@@ -107,6 +107,47 @@ router.post('/translate', async (req, res) => {
   }
 });
 
+// Helper function to call Gemini with fallback models if quota/rate limits are hit
+async function generateContentWithFallback(genAI, modelOptions, prompt) {
+  const primaryModel = modelOptions.model || 'gemini-2.5-flash';
+  const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.5-pro', 'gemini-1.5-pro'];
+  const modelsToTry = [primaryModel, ...fallbackModels];
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`[Gemini API] Attempting generation with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({
+        ...modelOptions,
+        model: modelName
+      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text().trim();
+      console.log(`[Gemini API] Successfully generated content using model: ${modelName}`);
+      return text;
+    } catch (err) {
+      lastError = err;
+      const errorMsg = (err.message || '').toLowerCase();
+      console.warn(`[Gemini API] Error with model ${modelName}:`, err.message || err);
+      
+      const isQuotaError = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('too many requests');
+      if (isQuotaError) {
+        console.warn(`[Gemini API] Quota exceeded for ${modelName}. Trying next fallback model...`);
+      } else {
+        console.warn(`[Gemini API] Model error for ${modelName}. Trying next fallback model...`);
+      }
+    }
+  }
+
+  if (lastError && ((lastError.message || '').toLowerCase().includes('quota') || (lastError.message || '').toLowerCase().includes('429'))) {
+    throw new Error(
+      `Gemini API daily/free-tier quota exceeded. Please wait a bit or check your plan. (Details: ${lastError.message})`
+    );
+  }
+  throw lastError;
+}
+
 // 2. POST /api/ai/generate-email
 router.post('/generate-email', auth, async (req, res) => {
   const userPrompt = req.body.prompt || req.body.details || req.body.description || req.body.purpose || '';
@@ -128,7 +169,7 @@ router.post('/generate-email', auth, async (req, res) => {
       genAI = new GoogleGenerativeAI(apiKey);
     }
 
-    const model = genAI.getGenerativeModel({
+    const modelOptions = {
       model: 'gemini-2.5-flash',
       systemInstruction: `You are an expert email writer.
 
@@ -155,11 +196,9 @@ Return only the email content.`,
         topP: 0.95,
         topK: 40
       }
-    });
+    };
 
-    const result = await model.generateContent(userPrompt);
-    const response = await result.response;
-    const emailContent = response.text().trim();
+    const emailContent = await generateContentWithFallback(genAI, modelOptions, userPrompt);
 
     // Save to database history
     const truncatedOutput = emailContent.length > 300 ? emailContent.substring(0, 300) + '...' : emailContent;
@@ -195,7 +234,7 @@ router.post('/analyze-entities', auth, async (req, res) => {
       genAI = new GoogleGenerativeAI(apiKey);
     }
 
-    const model = genAI.getGenerativeModel({
+    const modelOptions = {
       model: 'gemini-2.5-flash',
       systemInstruction: `You are an expert Named Entity Recognition system.
 
@@ -220,11 +259,9 @@ Schema:
 Do not explain anything.
 Do not add markdown.
 Return only JSON.`
-    });
+    };
 
-    const result = await model.generateContent(text);
-    const response = await result.response;
-    let cleanText = response.text().trim();
+    let cleanText = await generateContentWithFallback(genAI, modelOptions, text);
 
     if (cleanText.includes('```')) {
       cleanText = cleanText.replace(/```json/gi, '').replace(/```/g, '').trim();
